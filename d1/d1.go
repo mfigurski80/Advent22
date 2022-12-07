@@ -1,4 +1,4 @@
-package main
+package d1
 
 // https://adventofcode.com/2022/day/1
 
@@ -7,11 +7,13 @@ import (
 	"log"
 	"os"
 	"strconv"
+
+	. "github.com/mfigurski80/AOC22/utils"
 )
 
-func d1() {
+func Main() {
 	// open d1data.txt
-	f, err := os.Open("input/d1.txt")
+	f, err := os.Open("d1/d1.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -20,7 +22,7 @@ func d1() {
 	// read to get calories being carried
 	carried := make([]int, 0)
 	current := 0
-	do_by_line(f, func(s string) {
+	DoByLine(f, func(s string) {
 		// convert to int
 		i, err := strconv.Atoi(s)
 		if err != nil {
@@ -36,7 +38,7 @@ func d1() {
 	}
 
 	// find sum of top 3
-	top3 := find_top_k(carried, 3)
+	top3 := FindTopK(carried, 3)
 	sum := top3[0] + top3[1] + top3[2]
 	fmt.Println(sum)
 }
