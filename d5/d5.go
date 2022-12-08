@@ -101,17 +101,28 @@ func Main() {
 	}
 
 	// read operations input (from same file)
-	DoByFileLineWithError("d5/in.txt", func(s string) error {
+	_, err = DoByFileLineWithError("d5/in.txt", func(s string) error {
 		times, from, to, err := parseOperation(s)
 		if err != nil {
 			return err
 		}
-
-		for i := 0; i < times; i++ {
-			stacks[to-1].Push(stacks[from-1].Pop())
+		// pick up #times boxes from from stack
+		from_s := stacks[from-1]
+		to_s := stacks[to-1]
+		target_from_length := from_s.Length() - times
+		if target_from_length < 0 {
+			return fmt.Errorf("not enough boxes in stack %d to take %d", from, times)
 		}
+		// fmt.Printf("moving %c from %d to %d\n", (*from_s.Array)[target_from_length:], from, to)
+		*to_s.Array = append(*to_s.Array, (*from_s.Array)[target_from_length:]...)
+		*from_s.Array = (*from_s.Array)[:target_from_length]
+
 		return nil
 	}, endOfA)
+	if err != nil {
+		fmt.Println(stacks)
+		panic(err)
+	}
 
 	fmt.Println(stacks)
 
