@@ -20,3 +20,11 @@ func FindTopK(l []int, k int) []int {
 	}
 	return append(left, append([]int{pivot}, FindTopK(right, k-len(left)-1)...)...)
 }
+
+func ReverseInPlace[T any](l []T) []T {
+	// in-place reverse
+	for i := 0; i < len(l)/2; i++ {
+		l[i], l[len(l)-1-i] = l[len(l)-1-i], l[i]
+	}
+	return l
+}

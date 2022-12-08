@@ -34,3 +34,23 @@ func DoByNFileLines(N uint, f string, fn func([]string)) {
 		i++
 	}
 }
+
+func DoByFileLineWithError(f string, fn func(string) error, seek int64) (int64, error) {
+	file, err := os.Open(f)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	file.Seek(seek, 0)
+	scanner := bufio.NewScanner(file)
+	pos := seek
+	for scanner.Scan() {
+		txt := scanner.Text()
+		pos += int64(len(txt)) + 1
+		err := fn(txt)
+		if err != nil {
+			return pos, err
+		}
+	}
+	return pos, nil
+}
