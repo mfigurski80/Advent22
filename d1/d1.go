@@ -4,25 +4,16 @@ package d1
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"strconv"
 
 	. "github.com/mfigurski80/AOC22/utils"
 )
 
 func Main() {
-	// open d1data.txt
-	f, err := os.Open("d1/d1.txt")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
 	// read to get calories being carried
 	carried := make([]int, 0)
 	current := 0
-	DoByLine(f, func(s string) {
+	DoByFileLine("d1/d1.txt", func(s string) {
 		// convert to int
 		i, err := strconv.Atoi(s)
 		if err != nil {
