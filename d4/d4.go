@@ -24,15 +24,16 @@ func parseRanges(line string) ([2]uint, [2]uint) {
 }
 
 func Main() {
-	n_contained := 0
+	n_overlap := 0
 	DoByFileLine("d4/in.txt", func(line string) {
 		range_a, range_b := parseRanges(line)
-		if (range_a[0] <= range_b[0] && range_a[1] >= range_b[1]) || (range_b[0] <= range_a[0] && range_b[1] >= range_a[1]) {
-			fmt.Printf("RANGE: %d-%d, %d-%d\n", range_a[0], range_a[1], range_b[0], range_b[1])
-			n_contained++
+		if (range_a[0] <= range_b[0] && range_b[0] <= range_a[1]) || (range_a[0] <= range_b[1] && range_b[1] <= range_a[1]) ||
+			(range_b[0] <= range_a[0] && range_a[0] <= range_b[1]) || (range_b[0] <= range_a[1] && range_a[1] <= range_b[1]) {
+			fmt.Printf("OVERLAPPING: %d-%d, %d-%d\n", range_a[0], range_a[1], range_b[0], range_b[1])
+			n_overlap++
 		} else {
-			fmt.Printf("NOT CONTAINED: %d-%d, %d-%d\n", range_a[0], range_a[1], range_b[0], range_b[1])
+			fmt.Printf("NON-OVERLAPPING: %d-%d, %d-%d\n", range_a[0], range_a[1], range_b[0], range_b[1])
 		}
 	})
-	fmt.Printf("N CONTAINED: %d\n", n_contained)
+	fmt.Printf("N OVERLAPPING: %d\n", n_overlap)
 }
