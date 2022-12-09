@@ -21,17 +21,18 @@ func StringToMap(s string) CharMap {
 	return res
 }
 
+var LOOK_FOR_COUNT = 14
+
 func Main() {
 	DoByFileLine("d6/in.txt", func(ln string) {
-		fmt.Println(ln)
-		for i := 4; i < len(ln); i++ {
-			m := StringToMap(ln[i-4 : i])
+		for i := LOOK_FOR_COUNT; i < len(ln); i++ {
+			m := StringToMap(ln[i-LOOK_FOR_COUNT : i])
 			// github.com/tmthrgd/go-popcount
 			// https://pkg.go.dev/math/bits#OnesCount32
 			count := bits.OnesCount32(uint32(m))
-			fmt.Printf("Checking %s at %02d: %032b (%d)\n", ln[i-4:i], i, m, count)
-			if count == 4 {
-				fmt.Printf("Found: %s at %d: %b\n", ln[i-4:i], i, m)
+			// fmt.Printf("Checking %s at %02d: %032b (%d)\n", ln[i-LOOK_FOR_COUNT:i], i, m, count)
+			if count == LOOK_FOR_COUNT {
+				fmt.Printf("Found: %s at %d: %b\n", ln[i-LOOK_FOR_COUNT:i], i, m)
 				return
 			}
 		}
