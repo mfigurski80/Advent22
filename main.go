@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/mfigurski80/AOC22/d8"
+	"github.com/mfigurski80/AOC22/d9"
 )
 
 func main() {
-	d8.Main()
+	d9.Main()
 }
