@@ -9,8 +9,6 @@ import (
 	. "github.com/mfigurski80/AOC22/utils"
 )
 
-const LIMIT = 100000
-
 type FileType uint
 
 const (
@@ -33,9 +31,9 @@ func buildTreeFrom(fname string) (TreeNode[File], error) {
 	root := TreeNode[File]{Children: nil, Parent: nil, Metadata: File{"/", 0, DIRECTORY}}
 	currentDirectory := &root
 
-	_, err := DoByFileLineWithError("d7/in.txt", func(line string) error {
-		// CD
-		if movePattern.MatchString(line) {
+	_, err := DoByFileLineWithError(fname, func(line string) error {
+		switch {
+		case movePattern.MatchString(line):
 			match := movePattern.FindStringSubmatch(line)
 			// fmt.Println("Doing CD", match[1])
 			if match[1] == "/" {
@@ -57,22 +55,16 @@ func buildTreeFrom(fname string) (TreeNode[File], error) {
 				}
 			}
 			return fmt.Errorf("no such directory")
-		}
-		// LS
-		if lsPattern.MatchString(line) {
+		case lsPattern.MatchString(line):
 			// fmt.Println("Doing LS")
 			return nil
-		}
-		// DIR
-		if dirPattern.MatchString(line) {
+		case dirPattern.MatchString(line):
 			match := dirPattern.FindStringSubmatch(line)
 			// fmt.Println("Doing DIR", match[1], 0)
 			newDir := TreeNode[File]{Children: nil, Parent: currentDirectory, Metadata: File{match[1], 0, DIRECTORY}}
 			currentDirectory.Children = append(currentDirectory.Children, &newDir)
 			return nil
-		}
-		// FILE
-		if filePattern.MatchString(line) {
+		case filePattern.MatchString(line):
 			match := filePattern.FindStringSubmatch(line)
 			// fmt.Println("Doing FILE", match[2], match[1])
 			size, err := strconv.ParseUint(match[1], 10, 64)
@@ -82,8 +74,9 @@ func buildTreeFrom(fname string) (TreeNode[File], error) {
 			newFile := TreeNode[File]{Children: nil, Parent: currentDirectory, Metadata: File{match[2], uint(size), FILE}}
 			currentDirectory.Children = append(currentDirectory.Children, &newFile)
 			return nil
+		default:
+			return fmt.Errorf("no match on: %s", line)
 		}
-		return fmt.Errorf("no match on: %s", line)
 	}, 0)
 	if err != nil {
 		return root, err
@@ -102,25 +95,27 @@ func printTree(root TreeNode[File]) {
 	root.DfsOnTree(0, func(node TreeNode[File], level int) {
 		fmt.Printf("%s%s (%d)\n", strings.Repeat("  ", level), node.Metadata.Name, node.Metadata.Size)
 	})
-	// root.(root, 0, func(node Node, level int) {
-	// 	fmt.Printf("%s%s (%d)\n", strings.Repeat("  ", level), node.Name, node.Size)
-	// })
 }
+
+const DISK_SPACE = 70000000
+const NEED_SPACE = 30000000
 
 func Main() {
 	root, err := buildTreeFrom("d7/in.txt")
 	if err != nil {
 		panic(err)
 	}
-	// print tree
-	// printTree(root)
-	// sum up all directories below LIMIT
-	count := uint(0)
+	// find goal
+	missingSpace := NEED_SPACE - (DISK_SPACE - root.Metadata.Size)
+	fmt.Println("Missing space:", missingSpace)
+	// find smallest directory over that size
+	smallestDir := &root
 	root.DfsOnTree(0, func(node TreeNode[File], level int) {
-		if node.Metadata.Type == DIRECTORY && node.Metadata.Size < LIMIT {
-			count += node.Metadata.Size
+		if node.Metadata.Type == DIRECTORY && node.Metadata.Size > missingSpace && node.Metadata.Size < smallestDir.Metadata.Size {
+			smallestDir = &node
 			fmt.Printf("Found directory %s (%d)\n", node.Metadata.Name, node.Metadata.Size)
 		}
 	})
-	fmt.Println("Total size:", count)
+	fmt.Printf("Smallest directory: %s (%d)\n", smallestDir.Metadata.Name, smallestDir.Metadata.Size)
+
 }
