@@ -5,6 +5,7 @@ import "fmt"
 type StackStruct[T any] struct {
 	Push   func(T)
 	Pop    func() T
+	Peek   func() *T
 	Length func() int
 	String func() string
 	Array  *[]T
@@ -20,6 +21,9 @@ func Stack[T any]() StackStruct[T] {
 			res := slice[len(slice)-1]
 			slice = slice[:len(slice)-1]
 			return res
+		},
+		Peek: func() *T {
+			return &slice[len(slice)-1]
 		},
 		Length: func() int {
 			return len(slice)
