@@ -12,12 +12,22 @@ var addInstr = regexp.MustCompile(`addx (?P<Val>-?\d+)`)
 
 var REPORT = []uint{20, 60, 100, 140, 180, 220, 100000000000}
 
+func printFromCycle(cycle int, x int) {
+	cycle = cycle % 40
+	if cycle == x || cycle == x+1 || cycle == x-1 {
+		fmt.Printf("#")
+	} else {
+		fmt.Printf(".")
+	}
+	if cycle == 39 {
+		fmt.Println("")
+	}
+}
+
 func Main() {
 	x := 1
 	cycle := uint(0)
-	nextReport := 0
-	sumStrength := 0
-	DoByFileLine("d9/in.txt", func(line string) {
+	DoByFileLine("d10/in.txt", func(line string) {
 		switch {
 		case addInstr.MatchString(line):
 			match := addInstr.FindStringSubmatch(line)
@@ -29,25 +39,17 @@ func Main() {
 			if err != nil {
 				panic(err)
 			}
+			printFromCycle(int(cycle), x)
+			printFromCycle(int(cycle+1), x)
 			cycle += 2
-			if REPORT[nextReport] <= cycle {
-				fmt.Printf("[REPORT %d]: x = %d (strength %d)\n", REPORT[nextReport], x, x*int(REPORT[nextReport]))
-				sumStrength += x * int(REPORT[nextReport])
-				nextReport++
-			}
 			x += val
 		case line == "noop":
+			printFromCycle(int(cycle), x)
 			cycle++
-			if REPORT[nextReport] <= cycle {
-				fmt.Printf("[REPORT %d]: x = %d (strength %d)\n", REPORT[nextReport], x, x*int(REPORT[nextReport]))
-				sumStrength += x * int(REPORT[nextReport])
-				nextReport++
-			}
 		default:
 			fmt.Println("unknown instruction", line)
 			panic("unknown instruction")
 		}
 	})
 
-	fmt.Println("Total Strength", sumStrength)
 }
