@@ -2,7 +2,9 @@ package utils
 
 import (
 	"bufio"
+	"io/ioutil"
 	"os"
+	"regexp"
 )
 
 func DoByFileLine(f string, fn func(string)) {
@@ -53,4 +55,22 @@ func DoByFileLineWithError(f string, fn func(string) error, seek int64) (int64, 
 		}
 	}
 	return pos, nil
+}
+
+func DoForRegexMatches(f string, re string, fn func([]string)) {
+	// read file contents
+	file, err := os.Open(f)
+	if err != nil {
+		panic(err)
+	}
+	body, err := ioutil.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	matcher := regexp.MustCompile(re)
+	matches := matcher.FindAllStringSubmatch(string(body), -1)
+	for _, m := range matches {
+		fn(m)
+	}
 }
