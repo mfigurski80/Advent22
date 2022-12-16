@@ -18,13 +18,14 @@ const (
 )
 
 type Monkey = struct {
-	Id      uint
-	Items   []int
-	Operate func(int) int
-	Test    func(int) bool
-	IfTrue  uint
-	IfFalse uint
-	Count   uint
+	Id        uint
+	Items     []int
+	Operate   func(int) int
+	Test      func(int) bool
+	TestValue int
+	IfTrue    uint
+	IfFalse   uint
+	Count     uint
 }
 
 func DoForMonkeyInFile(fname string, fn func(Monkey)) {
@@ -104,13 +105,14 @@ func DoForMonkeyInFile(fname string, fn func(Monkey)) {
 			panic(err)
 		}
 		fn(Monkey{
-			Id:      uint(id),
-			Items:   items,
-			Operate: operate,
-			Test:    test,
-			IfTrue:  uint(ifTrue),
-			IfFalse: uint(ifFalse),
-			Count:   0,
+			Id:        uint(id),
+			Items:     items,
+			Operate:   operate,
+			Test:      test,
+			TestValue: divisibleBy,
+			IfTrue:    uint(ifTrue),
+			IfFalse:   uint(ifFalse),
+			Count:     0,
 		})
 	})
 }
@@ -118,20 +120,23 @@ func DoForMonkeyInFile(fname string, fn func(Monkey)) {
 func Main() {
 	monkeys := []Monkey{}
 	expectMonkeyId := 0
-	DoForMonkeyInFile("d11/temp.txt", func(m Monkey) {
+	valueMod := 1
+	DoForMonkeyInFile("d11/in.txt", func(m Monkey) {
 		monkeys = append(monkeys, m)
 		if int(m.Id) != expectMonkeyId {
 			panic("Monkey IDs are not sequential")
 		}
+		valueMod *= m.TestValue
 		expectMonkeyId++
 	})
+	fmt.Println("Value Mod", valueMod)
 
 	for i := 0; i < 10000; i++ {
 		// fmt.Println("ROUND", i+1)
 		for id, monkey := range monkeys {
 			for _, item := range monkey.Items {
 				monkeys[id].Count++
-				update := monkey.Operate(item) / 3
+				update := monkey.Operate(item) % valueMod
 				// to := monkey.IfFalse
 				if monkey.Test(update) {
 					monkeys[monkey.IfTrue].Items = append(monkeys[monkey.IfTrue].Items, update)
