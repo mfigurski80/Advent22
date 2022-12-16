@@ -36,6 +36,7 @@ func DoByNFileLines(N uint, f string, fn func([]string)) {
 		}
 		i++
 	}
+	fn(lines)
 }
 
 type StopIterationError struct {
