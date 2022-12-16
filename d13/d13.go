@@ -3,21 +3,22 @@ package d13
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	. "github.com/mfigurski80/AOC22/utils"
 )
 
 type Packet = []interface{}
 
-type Decision uint8
+type Decision int8
 
 const (
-	GOOD Decision = iota
-	UNDECIDED
-	BAD
+	BAD       Decision = -1
+	UNDECIDED Decision = 0
+	GOOD      Decision = 1
 )
 
-func ComparePackets(a Packet, b Packet) Decision {
+func ComparePackets(a, b Packet) Decision {
 	// fmt.Println("Comparing", a, b)
 	for i, _ := range a {
 		if i >= len(b) { // if right runs out of items first, good order
@@ -63,26 +64,38 @@ func ComparePackets(a Packet, b Packet) Decision {
 }
 
 func Main() {
-	i := 0
-	sum_i := 0
-	DoByNFileLines(3, "d13/in.txt", func(lines []string) {
-		// fmt.Println(lines)
-		a_body := Packet{}
-		b_body := Packet{}
-		err := json.Unmarshal([]byte(lines[0]), &a_body)
+	packets := make([]Packet, 2)
+	packets[0] = Packet{Packet{float64(2)}}
+	packets[1] = Packet{Packet{float64(6)}}
+	DoByFileLine("d13/in.txt", func(line string) {
+		if len(line) == 0 {
+			return
+		}
+		body := Packet{}
+		err := json.Unmarshal([]byte(line), &body)
 		if err != nil {
 			panic(err)
 		}
-		err = json.Unmarshal([]byte(lines[1]), &b_body)
-		if err != nil {
-			panic(err)
-		}
-		match := ComparePackets(a_body, b_body)
-		fmt.Println(" == Example", i+1, "==", match == GOOD)
-		if match == GOOD {
-			sum_i += i + 1
-		}
-		i++
+		packets = append(packets, body)
 	})
-	fmt.Println("Sum of good examples:", sum_i)
+
+	// sort
+	sort.SliceStable(packets, func(i, j int) bool {
+		return ComparePackets(packets[i], packets[j]) == GOOD
+	})
+
+	// find [[2]] and [[6]] index
+	st, en := 0, 0
+	for i, p := range packets {
+		s := fmt.Sprintf("%v", p)
+		fmt.Printf("%-2d %s\n", i+1, s)
+		if s == "[[2]]" {
+			st = i + 1
+		}
+		if s == "[[6]]" {
+			en = i + 1
+		}
+	}
+	fmt.Println("Start:", st, ", End:", en)
+	fmt.Println("Answer:", en*st)
 }
