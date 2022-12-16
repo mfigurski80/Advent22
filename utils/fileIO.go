@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bufio"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -35,6 +36,14 @@ func DoByNFileLines(N uint, f string, fn func([]string)) {
 		}
 		i++
 	}
+}
+
+type StopIterationError struct {
+	Message string
+}
+
+func (e StopIterationError) Error() string {
+	return fmt.Sprintf("Iteration stopped: %s", e.Message)
 }
 
 func DoByFileLineWithError(f string, fn func(string) error, seek int64) (int64, error) {
