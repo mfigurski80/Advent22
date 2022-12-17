@@ -15,3 +15,10 @@ func Max[A constraints.Ordered](a, b A) A {
 	}
 	return b
 }
+
+func Abs[A int | uint](a A) A {
+	if a < 0 {
+		return -a
+	}
+	return a
+}
