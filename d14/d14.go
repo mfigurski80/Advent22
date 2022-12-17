@@ -64,12 +64,13 @@ func ReadScaleWorldFrom(fname string) (*World, ScaleFunc) {
 			}
 		}
 	}
+	maxY += 2
 	xScale := ScaleFunc(func(x uint) uint {
 		return x - 500 + maxY
 	})
 	world := make(World, maxY+1)
 	for y := range world {
-		world[y] = make([]Tile, 2*maxY)
+		world[y] = make([]Tile, 2*maxY+2)
 		for x := range world[y] {
 			world[y][x] = EMPTY_TILE
 		}
@@ -101,9 +102,9 @@ func ReadScaleWorldFrom(fname string) (*World, ScaleFunc) {
 				panic("diagonal line")
 			}
 		}
-		// for _, p := range path {
-		// 	world[p[1]][xScale(p[0])] = ROCK_TILE
-		// }
+	}
+	for i, _ := range (world)[0] {
+		(world)[maxY][i] = ROCK_TILE
 	}
 
 	return &world, xScale
@@ -111,7 +112,6 @@ func ReadScaleWorldFrom(fname string) (*World, ScaleFunc) {
 
 func Main() {
 	world, xScale := ReadScaleWorldFrom("d14/in.txt")
-	// (*world)[8][9] = SAND_TILE
 
 	nPlaced := uint(0)
 	path := Stack[Point]()
