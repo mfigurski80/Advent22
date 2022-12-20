@@ -43,7 +43,6 @@ func getRangeCoveredAtY(y int, s Sensor) (bool, Range[int]) {
 	d := Abs(s.Pos.X-s.ClosestBeacon.X) + Abs(s.Pos.Y-s.ClosestBeacon.Y)
 	// get distance from sensor to y -- this will decide how much range is reduced
 	dy := Abs(y - s.Pos.Y)
-	fmt.Println("d", d, "dy", dy)
 	// get range covered by sensor at y
 	offset := d - dy
 	if offset < 0 {
@@ -52,26 +51,49 @@ func getRangeCoveredAtY(y int, s Sensor) (bool, Range[int]) {
 	return true, Range[int]{Lo: s.Pos.X - offset, Hi: s.Pos.X + offset}
 }
 
-const Y_TO_CHECK = 2000000
+func tuningFrequency(x, y int) int {
+	return x*4000000 + y
+}
+
+var TARGET_RANGE = Range[int]{Lo: 0, Hi: 4000000}
+var TARGET_AREA = TARGET_RANGE.Area()
 
 func Main() {
-	// read ranges
-	ranges := []Range[int]{}
+	// read sensors
+	sensors := make([]Sensor, 0)
 	forSensorInFile("d15/in.txt", func(s Sensor) {
-		ok, r := getRangeCoveredAtY(Y_TO_CHECK, s)
-		if !ok {
-			return
-		}
-		ranges = append(ranges, r)
-		fmt.Printf("Sensor at %v (beacon at %v) covers range %v\n", s.Pos, s.ClosestBeacon, r)
+		sensors = append(sensors, s)
 	})
 
-	// combine ranges
-	combined := CombineRangeSeries(ranges)
-	fmt.Printf("Combined ranges: %v\n", combined)
-	area := 0
-	for _, r := range combined {
-		area += r.Hi - r.Lo
+	// for each possible y
+	for y := TARGET_RANGE.Lo; y < TARGET_RANGE.Hi; y++ {
+		// build ranges
+		ranges := make([]Range[int], len(sensors))
+		for i, s := range sensors {
+			ok, r := getRangeCoveredAtY(y, s)
+			if !ok {
+				continue
+			}
+			ranges[i] = r
+		}
+		// combine ranges
+		combined := CombineRangeSeries(ranges)
+		// check area
+		area := 0
+		for _, r := range combined {
+			area += r.And(TARGET_RANGE).Area()
+		}
+		if y%10000 == 0 {
+			fmt.Printf("%-2d Total range covered: %d / %d\n", y, area, TARGET_AREA)
+		}
+		if area == TARGET_AREA {
+			continue
+		}
+		fmt.Printf("FOUND Not covering full range at y=%d, x=%d?\n",
+			y, combined[0].Hi+1)
+		fmt.Println(combined)
+		fmt.Printf("Tuning Frequency of this coordinate: %d\n", tuningFrequency(combined[0].Hi+1, y))
+		break
 	}
-	fmt.Printf("Total range covered: %d\n", area)
+
 }

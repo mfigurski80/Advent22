@@ -16,7 +16,7 @@ func Max[A constraints.Ordered](a, b A) A {
 	return b
 }
 
-func Abs[A int | uint](a A) A {
+func Abs[A Number](a A) A {
 	if a < 0 {
 		return -a
 	}

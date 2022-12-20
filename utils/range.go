@@ -25,6 +25,28 @@ func (r Range[T]) Or(other Range[T]) Range[T] {
 	return Range[T]{Lo: Min(r.Lo, other.Lo), Hi: Max(r.Hi, other.Hi)}
 }
 
+func (r Range[T]) And(other Range[T]) Range[T] {
+	tg := Range[T]{Lo: Max(r.Lo, other.Lo), Hi: Min(r.Hi, other.Hi)}
+	if tg.Hi < tg.Lo {
+		return Range[T]{}
+	}
+	return tg
+}
+
+func (r Range[T]) Not(other Range[T]) (bool, [2]Range[T]) {
+	if r.Lo > other.Hi+1 || r.Hi+1 < other.Lo { // no overlap
+		return false, [2]Range[T]{r, Range[T]{}}
+	}
+	return true, [2]Range[T]{
+		Range[T]{Lo: r.Lo, Hi: Min(r.Hi, other.Lo-1)},
+		Range[T]{Lo: Max(r.Lo, other.Hi+1), Hi: r.Hi},
+	}
+}
+
+func (r Range[T]) Area() T {
+	return r.Hi - r.Lo + 1
+}
+
 func (r Range[T]) Contiguous(other Range[T]) bool {
 	return !(r.Lo > other.Hi+1 || r.Hi+1 < other.Lo)
 }
@@ -43,10 +65,8 @@ func CombineRangeSeries[T Number](s []Range[T]) []Range[T] {
 			for i, c := range combined { // for each already-combined range
 				if c.Contiguous(r) { // if overlapping, combine
 					combined[i] = c.Or(r)
-					fmt.Printf("Combined ranges %v and %v to %v\n", c, r, combined[i])
+					// fmt.Printf("Combined ranges %v and %v to %v\n", c, r, combined[i])
 					goto next // found, stop looking for combined ranges
-				} else {
-					// fmt.Printf("Ranges %v and %v do not overlap\n", c, r)
 				}
 			}
 			combined = append(combined, r)
