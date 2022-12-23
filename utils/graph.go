@@ -3,7 +3,6 @@ package utils
 /**
  * Graph Node data structure
  * @param T: type of the data stored in the node
- * @param I: type of the *unique* id of the node
  */
 type GraphNode[T any] struct {
 	To           []*GraphNode[T]

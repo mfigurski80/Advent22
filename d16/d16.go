@@ -13,7 +13,6 @@ type TunnelId = [2]rune
 type Tunnel struct {
 	Id       TunnelId
 	FlowRate uint
-	Open     bool
 }
 
 const MOVE_COST = 1
@@ -39,7 +38,6 @@ func buildTunnelGraphFromFile(fname string) []GraphNode[Tunnel] {
 				Metadata: Tunnel{
 					Id:       Id,
 					FlowRate: uint(FlowRate),
-					Open:     false,
 				},
 			}
 			nodeIdx[Id] = nI
@@ -64,17 +62,23 @@ func printNode(n *GraphNode[Tunnel]) {
 	fmt.Printf(")>\n")
 }
 
-func valueNode(n *GraphNode[Tunnel]) uint {
-	val := uint(0)
-	n.BfsOnGraph(0, func(n *GraphNode[Tunnel], depth uint) error {
-		// printNode(n)
-		if n.Metadata.Open { // no cost if already open
-			return nil
-		}
-		val += n.Metadata.FlowRate * (MOVE_COST*depth + OPEN_COST)
-		return nil
-	})
-	return val
+// func valueNode(n *GraphNode[Tunnel]) uint {
+// val := uint(0)
+// n.BfsOnGraph(0, func(n *GraphNode[Tunnel], depth uint) error {
+// // printNode(n)
+// if n.Metadata.Open { // no cost if already open
+// return nil
+// }
+// val += n.Metadata.FlowRate * (MOVE_COST*depth + OPEN_COST)
+// return nil
+// })
+// return val
+// }
+
+type State struct {
+	Position         *GraphNode[Tunnel]
+	ValvesOpen       []*GraphNode[Tunnel]
+	PressureReleased uint
 }
 
 func Main() {
@@ -88,44 +92,107 @@ func Main() {
 		printNode(&graph[i])
 	}
 
-	// Setup Iteration
-	totalPressureRelease := uint(0)
-	tubesOpened := make([]*Tunnel, 0)
-	curNode := &graph[0]
-	curVal := valueNode(curNode)
-	fmt.Printf("Value at start: %d\n", curVal)
-	// Iterate
-	for i := 0; i < 4; i++ {
-		printNode(curNode)
-		// Find min-cost edge from current node
-		minCost := curVal
-		minNode := curNode.To[0]
-		for _, n := range curNode.To {
-			c := valueNode(n)
-			if c < minCost {
-				minCost = c
-				minNode = n
-			}
-			fmt.Printf("  Cost to %c%c: %d\n", n.Metadata.Id[0], n.Metadata.Id[1], c)
-		}
-		// Check if opening current is better
-		curNode.Metadata.Open = true
-		curVal = valueNode(curNode)
-		fmt.Printf("  Cost to open: %d\n", curVal)
-		if curVal < minCost { // opening is better
-			tubesOpened = append(tubesOpened, &curNode.Metadata)
-			fmt.Printf("ACTION: Opening %c%c (%d)\n", curNode.Metadata.Id[0], curNode.Metadata.Id[1], curVal)
-		} else { // opening is worse, move to min-cost node
-			curNode.Metadata.Open = false
-			curNode = minNode
-			curVal = minCost
-			fmt.Printf("ACTION: Moving to %c%c (%d)\n", curNode.Metadata.Id[0], curNode.Metadata.Id[1], curVal)
-		}
-		// Find pressure release
-		for _, tube := range tubesOpened {
-			totalPressureRelease += tube.FlowRate
-		}
+	maxPressureReleased := uint(0)
+	seen := map[TunnelId][]uint{} // cache: tunnel + depth => pressure
+	start := State{
+		&graph[0],
+		make([]*GraphNode[Tunnel], 0),
+		0,
 	}
+
+	ConstructTree(0, &start, func(state *State, depth uint) []*State {
+		children := make([]*State, 0)
+		// check max depth
+		if depth >= MAX_COST {
+			if state.PressureReleased > maxPressureReleased {
+				maxPressureReleased = state.PressureReleased
+				fmt.Printf("  - Found new max pressure: %d\n", maxPressureReleased)
+			}
+			return nil
+		}
+		// check cache
+		prev, ok := seen[state.Position.Metadata.Id]
+		if ok && prev[depth] >= state.PressureReleased {
+			return nil
+		}
+		if ok && state.PressureReleased >= prev[depth] {
+			seen[state.Position.Metadata.Id][depth] = state.PressureReleased
+			fmt.Printf("Notable Node %c%c @ %d (%d pressure released)\n",
+				state.Position.Metadata.Id[0],
+				state.Position.Metadata.Id[1],
+				depth, state.PressureReleased,
+			)
+		}
+		if !ok {
+			seen[state.Position.Metadata.Id] = make([]uint, MAX_COST)
+			seen[state.Position.Metadata.Id][depth] = state.PressureReleased
+		}
+		// build children
+		for _, ch := range state.Position.To {
+			children = append(children, &State{
+				ch,
+				state.ValvesOpen,
+				state.PressureReleased,
+			})
+		}
+		isOpen := false
+		for _, n := range state.ValvesOpen {
+			if n.Metadata.Id == state.Position.Metadata.Id {
+				isOpen = true
+				break
+			}
+		}
+		if !isOpen && state.Position.Metadata.FlowRate > 0 {
+			children = append(children, &State{
+				state.Position,
+				append(state.ValvesOpen, state.Position),
+				state.PressureReleased + (MAX_COST-depth)*state.Position.Metadata.FlowRate,
+			})
+		}
+
+		return children
+	})
+
+	fmt.Printf("Max Pressure Release Possible: %d\n", maxPressureReleased)
+
+	// // Setup Iteration
+	// totalPressureRelease := uint(0)
+	// tubesOpened := make([]*Tunnel, 0)
+	// curNode := &graph[0]
+	// curVal := valueNode(curNode)
+	// fmt.Printf("Value at start: %d\n", curVal)
+	// Iterate
+	// for i := 0; i < 4; i++ {
+	// printNode(curNode)
+	// Find min-cost edge from current node
+	// minCost := curVal
+	// minNode := curNode.To[0]
+	// for _, n := range curNode.To {
+	// c := valueNode(n)
+	// if c < minCost {
+	// minCost = c
+	// minNode = n
+	// }
+	// fmt.Printf("  Cost to %c%c: %d\n", n.Metadata.Id[0], n.Metadata.Id[1], c)
+	// }
+	// Check if opening current is better
+	// curNode.Metadata.Open = true
+	// curVal = valueNode(curNode)
+	// fmt.Printf("  Cost to open: %d\n", curVal)
+	// if curVal < minCost { opening is better
+	// tubesOpened = append(tubesOpened, &curNode.Metadata)
+	// fmt.Printf("ACTION: Opening %c%c (%d)\n", curNode.Metadata.Id[0], curNode.Metadata.Id[1], curVal)
+	// } else { opening is worse, move to min-cost node
+	// curNode.Metadata.Open = false
+	// curNode = minNode
+	// curVal = minCost
+	// fmt.Printf("ACTION: Moving to %c%c (%d)\n", curNode.Metadata.Id[0], curNode.Metadata.Id[1], curVal)
+	// }
+	// Find pressure release
+	// for _, tube := range tubesOpened {
+	// totalPressureRelease += tube.FlowRate
+	// }
+	// }
 	// Print Results
-	fmt.Printf("Total pressure release: %d\n", totalPressureRelease)
+	// fmt.Printf("Total pressure release: %d\n", totalPressureRelease)
 }
