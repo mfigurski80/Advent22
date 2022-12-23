@@ -2,7 +2,6 @@ package utils
 
 import (
 	"bufio"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -39,14 +38,6 @@ func DoByNFileLines(N uint, f string, fn func([]string)) {
 	fn(lines)
 }
 
-type StopIterationError struct {
-	Message string
-}
-
-func (e StopIterationError) Error() string {
-	return fmt.Sprintf("Iteration stopped: %s", e.Message)
-}
-
 func DoByFileLineWithError(f string, fn func(string) error, seek int64) (int64, error) {
 	file, err := os.Open(f)
 	if err != nil {
@@ -67,7 +58,7 @@ func DoByFileLineWithError(f string, fn func(string) error, seek int64) (int64, 
 	return pos, nil
 }
 
-func DoForRegexMatches(f string, re string, fn func([]string)) {
+func DoForRegexMatchesWithSetup(f string, re string, setup func(uint), fn func([]string, uint)) {
 	// read file contents
 	file, err := os.Open(f)
 	if err != nil {
@@ -77,10 +68,16 @@ func DoForRegexMatches(f string, re string, fn func([]string)) {
 	if err != nil {
 		panic(err)
 	}
-
 	matcher := regexp.MustCompile(re)
 	matches := matcher.FindAllStringSubmatch(string(body), -1)
-	for _, m := range matches {
-		fn(m)
+	setup(uint(len(matches)))
+	for i, m := range matches {
+		fn(m, uint(i))
 	}
+}
+
+func DoForRegexMatches(f string, re string, fn func([]string)) {
+	DoForRegexMatchesWithSetup(f, re, func(i uint) {}, func(m []string, _ uint) {
+		fn(m)
+	})
 }

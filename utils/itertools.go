@@ -1,5 +1,7 @@
 package utils
 
+import "fmt"
+
 func FindTopK(l []int, k int) []int {
 	// find top k by partitioning
 	pivot := l[0]
@@ -27,4 +29,12 @@ func ReverseInPlace[T any](l []T) []T {
 		l[i], l[len(l)-1-i] = l[len(l)-1-i], l[i]
 	}
 	return l
+}
+
+type StopIterationError struct {
+	Message string
+}
+
+func (e StopIterationError) Error() string {
+	return fmt.Sprintf("Iteration stopped: %s", e.Message)
 }
