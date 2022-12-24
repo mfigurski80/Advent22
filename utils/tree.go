@@ -19,12 +19,3 @@ func (root *TreeNode[T]) BfsOnTree(depth int, f func(*TreeNode[T], int)) error {
 		return node.Children, nil
 	})
 }
-
-func ConstructTree[T any](depth uint, root T, f func(T, uint) []T) *TreeNode[T] {
-	tree := &TreeNode[T]{Metadata: root}
-	children := f(root, depth)
-	for _, child := range children {
-		tree.Children = append(tree.Children, ConstructTree(depth+1, child, f))
-	}
-	return tree
-}

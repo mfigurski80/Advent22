@@ -87,11 +87,9 @@ func Main() {
 	if len(graph) > 256 {
 		panic("Misjudged graph size")
 	}
-	// Ensure Okay
-	for i := range graph {
-		printNode(&graph[i])
-	}
 
+	// Setup State Representation
+	var maxState *State
 	maxPressureReleased := uint(0)
 	seen := map[TunnelId][]uint{} // cache: tunnel + depth => pressure
 	start := State{
@@ -100,34 +98,38 @@ func Main() {
 		0,
 	}
 
-	ConstructTree(0, &start, func(state *State, depth uint) []*State {
+	// Build State tree
+	DfsCore[*State](0, &start, func(state *State, depth uint) ([]*State, error) {
 		children := make([]*State, 0)
+		curId := state.Position.Metadata.Id
 		// check max depth
 		if depth >= MAX_COST {
 			if state.PressureReleased > maxPressureReleased {
 				maxPressureReleased = state.PressureReleased
+				maxState = state
 				fmt.Printf("  - Found new max pressure: %d\n", maxPressureReleased)
 			}
-			return nil
+			return nil, nil
 		}
 		// check cache
-		prev, ok := seen[state.Position.Metadata.Id]
-		if ok && prev[depth] >= state.PressureReleased {
-			return nil
-		}
-		if ok && state.PressureReleased >= prev[depth] {
-			seen[state.Position.Metadata.Id][depth] = state.PressureReleased
-			fmt.Printf("Notable Node %c%c @ %d (%d pressure released)\n",
-				state.Position.Metadata.Id[0],
-				state.Position.Metadata.Id[1],
-				depth, state.PressureReleased,
-			)
-		}
+		prev, ok := seen[curId]
 		if !ok {
-			seen[state.Position.Metadata.Id] = make([]uint, MAX_COST)
-			seen[state.Position.Metadata.Id][depth] = state.PressureReleased
+			seen[curId] = make([]uint, MAX_COST)
+			seen[curId][depth] = state.PressureReleased
+		} else if prev[depth] >= state.PressureReleased {
+			return nil, nil
+		} else if state.PressureReleased > prev[depth] {
+			for i := depth; i < MAX_COST && state.PressureReleased > prev[i]; i++ {
+				seen[curId][i] = state.PressureReleased
+
+			}
+			// fmt.Printf("Notable Node %c%c @ %d (%d pressure released)\n",
+			// curId[0],
+			// curId[1],
+			// depth, state.PressureReleased,
+			// )
 		}
-		// build children
+		// build move-action children
 		for _, ch := range state.Position.To {
 			children = append(children, &State{
 				ch,
@@ -135,9 +137,10 @@ func Main() {
 				state.PressureReleased,
 			})
 		}
+		// build open-action child
 		isOpen := false
 		for _, n := range state.ValvesOpen {
-			if n.Metadata.Id == state.Position.Metadata.Id {
+			if n.Metadata.Id == curId {
 				isOpen = true
 				break
 			}
@@ -146,14 +149,19 @@ func Main() {
 			children = append(children, &State{
 				state.Position,
 				append(state.ValvesOpen, state.Position),
-				state.PressureReleased + (MAX_COST-depth)*state.Position.Metadata.FlowRate,
+				state.PressureReleased + (MAX_COST-depth-1)*state.Position.Metadata.FlowRate,
 			})
 		}
 
-		return children
+		return children, nil
 	})
 
 	fmt.Printf("Max Pressure Release Possible: %d\n", maxPressureReleased)
+	fmt.Printf("Opened: ")
+	for _, n := range maxState.ValvesOpen {
+		fmt.Printf("%c%c ", n.Metadata.Id[0], n.Metadata.Id[1])
+	}
+	fmt.Printf("\n")
 
 	// // Setup Iteration
 	// totalPressureRelease := uint(0)

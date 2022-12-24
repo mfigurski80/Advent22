@@ -19,9 +19,6 @@ func BfsCore[T any](root T, fn BfsDecisionFunction[T]) error {
 		node := queue.Pop()
 		children, err := fn(node, level)
 		if err != nil {
-			if _, ok := err.(StopIterationError); ok {
-				continue
-			}
 			return err
 		}
 		for i := range children {
@@ -31,6 +28,21 @@ func BfsCore[T any](root T, fn BfsDecisionFunction[T]) error {
 		if nextLevelAt == 0 {
 			level++
 			nextLevelAt = uint(queue.Length())
+		}
+	}
+	return nil
+}
+
+type DfsDecisionFunction[T any] func(T, uint) ([]T, error)
+
+func DfsCore[T any](level uint, root T, fn DfsDecisionFunction[T]) error {
+	children, err := fn(root, level)
+	if err != nil {
+		return err
+	}
+	for i := range children {
+		if err := DfsCore[T](level+1, children[i], fn); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -54,9 +66,6 @@ func BeamSearchCore[T any](root T, nToKeep uint, fn BeamSearchDecisionFunc[T]) e
 		node := queue.Pop()
 		children, values, err := fn(node, level)
 		if err != nil {
-			if _, ok := err.(StopIterationError); ok {
-				continue
-			}
 			return err
 		}
 		sort.Slice(children, func(i, j int) bool {
