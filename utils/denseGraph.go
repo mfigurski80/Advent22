@@ -17,6 +17,9 @@ type DenseGraph[T any, D comparable] struct {
 	Distance [][]D
 }
 
+type AdjacencyGraph[T any] DenseGraph[T, bool]
+type WeightedGraph[T any] DenseGraph[T, uint]
+
 func (g *DenseGraph[T, D]) String() string {
 	ret := fmt.Sprintf("DenseGraph with %d nodes: ", len(g.Nodes))
 	for i, n := range g.Nodes {
@@ -54,9 +57,6 @@ func (g *DenseGraph[T, D]) FilterNodes(f func(T) bool) *DenseGraph[T, D] {
 	g.Distance = newDistance
 	return g
 }
-
-type AdjacencyGraph[T any] DenseGraph[T, bool]
-type WeightedGraph[T any] DenseGraph[T, uint]
 
 func AdjacencyGraphFromSparse[T comparable](g []GraphNode[T]) *DenseGraph[T, bool] {
 	nodes := make([]T, len(g))

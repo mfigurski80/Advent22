@@ -69,6 +69,10 @@ type State struct {
 	ValvesOpen       []uint
 }
 
+func (s *State) String() string {
+	return fmt.Sprintf("<State: (%d) depth=%-2d, pressure=%d, valves=%v>", s.Position, s.Depth, s.PressureReleased, s.ValvesOpen)
+}
+
 func Main() {
 	// Build Graph
 	graph := buildTunnelGraphFromFile("d16/in.txt")
@@ -78,7 +82,7 @@ func Main() {
 	fmt.Println(dg)
 
 	// Setup State Representation
-	// seen := map[TunnelId][]uint{} // cache: tunnel + depth => pressure
+	seen := map[TunnelId][]uint{} // cache: tunnel + depth => pressure
 	var maxState *State
 	maxPressureReleased := uint(0)
 	start := State{0, 0, 0, []uint{}}
@@ -86,13 +90,12 @@ func Main() {
 
 	// Traverse State tree
 	DfsCore[*State](0, &start, func(state *State, _ uint) ([]*State, error) {
-
-		// fmt.Printf("  <State: (%d) %c%c, depth=%-2d, pressure=%d, valves=%v>\n", state.Position, curId[0], curId[1], state.Depth, state.PressureReleased, state.ValvesOpen)
+		// fmt.Println(state.String())
 		// compare to maximum
 		if state.PressureReleased > maxPressureReleased {
 			maxPressureReleased = state.PressureReleased
 			maxState = state
-			fmt.Printf("  - Found new max pressure: %d: ", maxPressureReleased)
+			fmt.Printf("  - Found new max pressure: (%d) ", maxPressureReleased)
 			for _, v := range maxState.ValvesOpen {
 				fmt.Printf("%c%c ", dg.Nodes[v].Id[0], dg.Nodes[v].Id[1])
 			}
@@ -102,25 +105,20 @@ func Main() {
 		if state.Depth >= MAX_COST || len(state.ValvesOpen) >= len(dg.Nodes) {
 			return nil, nil
 		}
-		// // check cache
-		// curId := dg.Nodes[state.Position].Id
-		// _, ok := seen[curId]
-		// if !ok {
-		// seen[curId] = make([]uint, MAX_COST)
-		// // seen[curId][state.Depth] = state.PressureReleased
-		// }
-		// if ok && seen[curId][state.Depth] >= state.PressureReleased {
-		// return nil, nil // cached is better
-		// } else if state.PressureReleased > seen[curId][state.Depth] {
-		// for i := state.Depth; i < MAX_COST && state.PressureReleased > seen[curId][i]; i++ {
-		// seen[curId][i] = state.PressureReleased
-		// }
-		// // fmt.Printf("Notable Node %c%c @ %d (%d pressure released)\n",
-		// // curId[0],
-		// // curId[1],
-		// // state.Depth, state.PressureReleased,
-		// // )
-		// }
+		// check cache
+		curId := dg.Nodes[state.Position].Id
+		_, ok := seen[curId]
+		if !ok {
+			seen[curId] = make([]uint, MAX_COST)
+		}
+		if ok && seen[curId][state.Depth] >= state.PressureReleased {
+			return nil, nil // cached is better
+		} else if state.PressureReleased > seen[curId][state.Depth] {
+			for i := state.Depth; i < MAX_COST && state.PressureReleased > seen[curId][i]; i++ {
+				seen[curId][i] = state.PressureReleased
+			}
+			// fmt.Printf("Notable Node %c%c @ %d (%d pressure released)\n", curId[0], curId[1], state.Depth, state.PressureReleased)
+		}
 		children := make([]*State, 0)
 	CONTINUE:
 		for i, d := range dg.Distance[state.Position] {
@@ -133,7 +131,7 @@ func Main() {
 					continue CONTINUE // skip if already open
 				}
 			}
-			expDepth := state.Depth + d + 1
+			expDepth := state.Depth + MOVE_COST*d + OPEN_COST
 			if expDepth > MAX_COST {
 				continue // skip if too far
 			}
@@ -143,7 +141,6 @@ func Main() {
 				state.PressureReleased + (MAX_COST-expDepth)*dg.Nodes[i].FlowRate,
 				make([]uint, len(state.ValvesOpen)+1),
 			}
-			// fmt.Printf("  Adding Child %d %c%c (at depth %d) for +%d pressure: %v\n", i, dg.Nodes[i].Id[0], dg.Nodes[i].Id[1], child.Depth, (MAX_COST-expDepth)*dg.Nodes[i].FlowRate, append(state.ValvesOpen, i))
 			// DO NOT USE APPEND: it reuses the same underlying array
 			copy(child.ValvesOpen, state.ValvesOpen)
 			child.ValvesOpen[len(child.ValvesOpen)-1] = i

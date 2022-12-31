@@ -33,6 +33,12 @@ func BfsCore[T any](root T, fn BfsDecisionFunction[T]) error {
 	return nil
 }
 
+/**
+ * DFS Search Decision Function
+ * @param node: current node
+ * @param level: current level
+ * @return: children of current node
+ */
 type DfsDecisionFunction[T any] func(T, uint) ([]T, error)
 
 func DfsCore[T any](level uint, root T, fn DfsDecisionFunction[T]) error {
